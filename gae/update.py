@@ -1,7 +1,8 @@
-import os, re, sys, logging, bz2
-from dbmodel import *
-from google.appengine.api import urlfetch, memcache
+import os, re, sys, logging
+from google.appengine.api import urlfetch
 from vimh2h import VimH2H
+from dbmodel import *
+from update_common import *
 
 # Once we have consumed about 30 seconds of CPU time, Google will throw us a
 # DeadlineExceededError and our script terminates. Therefore, we must be careful
@@ -9,28 +10,7 @@ from vimh2h import VimH2H
 # scheduled run of the script can pick up where the previous one was
 # interrupted.
 
-BASE_URL = 'http://vim.googlecode.com/hg/runtime/doc/'
-TAGS_URL = BASE_URL + 'tags'
-FAQ_URL = 'http://github.com/chrisbra/vim_faq/raw/master/doc/vim_faq.txt'
-
-is_dev = (os.environ.get('SERVER_NAME') == 'localhost')
 force = (os.environ.get('QUERY_STRING') == 'force')
-
-if is_dev:
-    logging.getLogger().setLevel(logging.DEBUG)
-
-def do_log(msg, args, logfunc, html_msg = None):
-    msg = msg % args
-    logfunc(msg)
-    if html_msg is None: html_msg = "<p>" + msg + "</p>"
-    print html_msg
-
-def log_debug(msg, *args): do_log(msg, args, logging.debug)
-def log_info(msg, *args): do_log(msg, args, logging.info)
-def log_warning(msg, *args):
-    do_log(msg, args, logging.info, "<p><b>" + msg + "</b></p>")
-def log_error(msg, *args):
-    do_log(msg, args, logging.error, "<h2>" + msg + "</h2>")
 
 class FileFromServer:
     def __init__(self, content, modified, upf):
@@ -63,16 +43,6 @@ def fetch(url, write_to_cache = True, use_etag = True):
 	dbrecord.put()
     logging.debug("fetched %s", url)
     return FileFromServer(result.content, True, dbrecord)
-
-def store(filename, content, pf):
-    if pf is None:
-	pf = ProcessedFile(filename = filename)
-    compressed = bz2.compress(content)
-    pf.data = compressed
-    pf.redo = False
-    memcache.set(filename, compressed)
-    pf.put()
-    log_debug("Processed file %s", filename)
 
 index = fetch(BASE_URL).content
 
@@ -113,10 +83,11 @@ log_debug("processed tags")
 
 pfs = { }
 for pf in ProcessedFile.all():
-    if force:
-	pf.redo = True
-	pf.put()
-    pfs[pf.filename] = pf
+    if not pf.filename.startswith('de/'):  # TODO a bit brittle this...
+        if force:
+            pf.redo = True
+            pf.put()
+        pfs[pf.filename] = pf
 
 filenames = set()
 
@@ -128,8 +99,6 @@ if not skip_help:
 	if filename in filenames: continue
 	filenames.add(filename)
 	count += 1
-	if is_dev and count < 15: continue
-	if is_dev and count > 35: break
 	f = fetch(BASE_URL + filename, False)
 	filenamehtml = filename + '.html'
 	pf = pfs.get(filenamehtml)

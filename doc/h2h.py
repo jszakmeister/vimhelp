@@ -2,14 +2,11 @@
 
 import sys
 import os.path
-import cProfile
+#import cProfile
 
 sys.path.append('../gae')
 
-if os.path.basename(sys.argv[0]) == 'old_h2h.py':
-    from old_vimh2h import VimH2H
-else:
-    from vimh2h import VimH2H
+from vimh2h import VimH2H
 
 def slurp(filename):
     f = open(filename)
@@ -29,7 +26,7 @@ def main():
     for filename in sys.argv[1:]:
 	print "Processing " + filename + "..."
 	of = open(filename + '.html', 'w')
-	of.write(h2h.to_html(filename, slurp(filename), False))
+	of.write(h2h.to_html(filename, slurp(filename), False, False))
 	of.close()
 
 main()

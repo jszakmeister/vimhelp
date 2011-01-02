@@ -12,10 +12,10 @@ HEADER1 = """
 <head>
 <title>Vim: {filename}</title>
 <!--[if IE]>
-<link rel="stylesheet" href="vimhelp-ie.css" type="text/css">
+<link rel="stylesheet" href="/vimhelp-ie.css" type="text/css">
 <![endif]-->
 <!--[if !IE]>-->
-<link rel="stylesheet" href="vimhelp.css" type="text/css">
+<link rel="stylesheet" href="/vimhelp.css" type="text/css">
 <!--<![endif]-->
 </head>
 <body>
@@ -54,6 +54,11 @@ SITESEARCH = """
     customSearchControl.draw('cse');
   }, true);
 </script>
+"""
+
+LANG_DE_NA_NOTE = """
+<p><i>Eine deutsche &Uuml;bersetzung ist f&uuml;r diese Seite nicht
+verf&uuml;gbar; das englischsprachige Original wird angezeigt.</i></p>
 """
 
 HEADER2 = """
@@ -116,6 +121,10 @@ RE_SECTION   = re.compile(r'[-A-Z .][-A-Z0-9 .()]*(?=\s+\*)')
 RE_STARTAG   = re.compile(r'\s\*([^ \t|]+)\*(?:\s|$)')
 RE_LOCAL_ADD = re.compile(r'LOCAL ADDITIONS:\s+\*local-additions\*$')
 
+LANG_EN    = 0
+LANG_DE    = 1
+LANG_DE_NA = 2
+
 class Link:
     def __init__(self, link_pipe, link_plain):
 	self.link_pipe = link_pipe
@@ -124,21 +133,29 @@ class Link:
 class VimH2H:
     urls = { }
 
-    def __init__(self, tags):
+    def __init__(self, tags, language = LANG_EN):
+        self.add_tags(tags, language)
+
+    def add_tags(self, tags, language = LANG_EN):
 	for line in RE_NEWLINE.split(tags):
 	    m = RE_TAGLINE.match(line)
 	    if m:
 		tag, filename = m.group(1, 2)
+                if language == LANG_DE and filename.endswith('.dex'):
+                    filename = filename[:-4] + '.txt'
 		self.do_add_tag(filename, tag)
 
-    def add_tags(self, filename, contents):
+    def generate_tags(self, filename, contents):
 	for match in RE_STARTAG.finditer(contents):
 	    tag = match.group(1).replace('\\', '\\\\').replace('/', '\\/')
 	    self.do_add_tag(filename, tag)
 
     def do_add_tag(self, filename, tag):
-	part1 = '<a href="' + filename + '.html#' + \
-		urllib.quote_plus(tag) + '"'
+        if tag == 'help-tags':
+            part1 = '<a href="' + filename + '.html"'
+        else:
+            part1 = '<a href="' + filename + '.html#' + \
+                    urllib.quote_plus(tag) + '"'
 	part2 = '>' + cgi.escape(tag) + '</a>'
 	link_pipe = part1 + ' class="l"' + part2
 	classattr = ' class="d"'
@@ -162,7 +179,7 @@ class VimH2H:
 	else: return cgi.escape(tag)
 
     def to_html(self, filename, contents, include_sitesearch = True,
-	    include_faq = True):
+	    include_faq = True, language = LANG_EN):
 
 	out = [ ]
 
@@ -242,6 +259,7 @@ class VimH2H:
 		(START_HEADER if filename == 'help.txt' else '') + \
 		SITENAVI + \
 		(SITESEARCH if include_sitesearch else '') + \
+                (LANG_DE_NA_NOTE if language == LANG_DE_NA else '') + \
 		HEADER2 + \
 		''.join(out) + \
 		FOOTER + \

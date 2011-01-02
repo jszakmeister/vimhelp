@@ -15,8 +15,10 @@ def notfound(msg = None):
 path_info = os.environ['PATH_INFO']
 if path_info == '/':
     filename = 'help.txt.html'
+elif path_info in ('/de', '/de/'):
+    filename = 'de/help.txt.html'
 else:
-    m = re.match(r"/((?:.*?\.txt|tags)\.html)$", path_info)
+    m = re.match(r"/((?:de/)?(?:.*?\.txt|tags)\.html)$", path_info)
     if not m: notfound("illegal url")
     filename = m.group(1)
 
