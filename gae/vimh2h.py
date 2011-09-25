@@ -32,16 +32,18 @@ href="http://github.com/chrisbra/vim_faq" target="_blank" class="d">github
 repository</a>.</p>
 """
 
-SITENAVI = """
+SITENAVI_START = """
 <p>
 Quick links:
-<a href="/">help overview</a> &middot;
-<a href="quickref.txt.html">quick reference</a> &middot;
-<a href="usr_toc.txt.html">user manual toc</a> &middot;
-<a href="help.txt.html#reference_toc">reference manual toc</a> &middot;
-<a href="vim_faq.txt.html">faq</a>
-</p>
+<a href="/">help overview</a>
+&middot; <a href="quickref.txt.html">quick reference</a>
+&middot; <a href="usr_toc.txt.html">user manual toc</a>
+&middot; <a href="help.txt.html#reference_toc">reference manual toc</a>
 """
+SITENAVI_FAQ = '&middot; <a href="vim_faq.txt.html">faq</a>'
+SITENAVI_LANG_EN = '&middot; <a href="/en/{filename}">English</a>'
+SITENAVI_LANG_DE = '&middot; <a href="/de/{filename}">German</a>'
+SITENAVI_END = '</p>'
 
 SITESEARCH = """
 <div id="cse" style="width: 100%;">Loading Google custom search</div>
@@ -207,7 +209,7 @@ class VimH2H:
 		m = RE_SECTION.match(line)
 		out.append(m.expand(r'<span class="c">\g<0></span>'))
 		line = line[m.end():]
-	    if filename == 'help.txt' and RE_LOCAL_ADD.match(line_tabs):
+	    if filename == 'help.txt' and RE_LOCAL_ADD.match(line_tabs) and include_faq:
 		faq_line = True
 	    lastpos = 0
 	    for match in RE_TAGWORD.finditer(line):
@@ -255,14 +257,24 @@ class VimH2H:
 		out.append(VIM_FAQ_LINE)
 		faq_line = False
 
+        if language in (LANG_DE, LANG_DE_NA):
+            sitenavi_lang = SITENAVI_LANG_EN.replace('{filename}', filename)
+        else:
+            sitenavi_lang = ''  # TODO should be SITENAVI_LANG_DE if available
+
+        sitenavi = SITENAVI_START + \
+                   (SITENAVI_FAQ if include_faq else '') + \
+                   sitenavi_lang + \
+                   SITENAVI_END
+
 	return HEADER1.replace('{filename}', filename) + \
 		(START_HEADER if filename == 'help.txt' else '') + \
-		SITENAVI + \
+		sitenavi + \
 		(SITESEARCH if include_sitesearch else '') + \
                 (LANG_DE_NA_NOTE if language == LANG_DE_NA else '') + \
 		HEADER2 + \
 		''.join(out) + \
 		FOOTER + \
-		SITENAVI + \
+		sitenavi + \
 		FOOTER2
 

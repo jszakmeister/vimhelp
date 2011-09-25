@@ -12,6 +12,11 @@ from update_common import *
 
 force = (os.environ.get('QUERY_STRING') == 'force')
 
+de_upfs = { }
+for upf in UnprocessedFile.all():
+    if upf.url.startswith('de/'):
+        de_upfs[upf.url] = upf
+
 class FileFromServer:
     def __init__(self, content, modified, upf):
 	self.content = content
